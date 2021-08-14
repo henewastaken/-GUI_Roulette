@@ -1,26 +1,22 @@
 
 package gui_projectwork;
 
-import com.sun.javafx.tk.Toolkit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.stage.Screen;
+import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 /**
  * A roulette calculator. 
@@ -32,36 +28,43 @@ public class GUI_Projectwork extends Application {
 
     Integer blackNumbersHelper[] = new Integer[] {2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35};
     ArrayList blackNumbers = new ArrayList(Arrays.asList(blackNumbersHelper));
+    int value = 50; // scale value for rectangle sizing. 
+    
+    
     public static void main(String[] args) {
         launch(args);
     }
 
     @Override
     public void start(Stage stage) throws Exception {
-        Group g = new Group();
+        Group root = new Group();
         StackPane sp = new StackPane();
-        Rectangle rtgl = null;
+        
+        Chip dollarChip = new Chip(value*10, 100, 17, Color.CADETBLUE, root, 1);
        
-        // Call table create method
-        creteRouletteTable(g, rtgl);
+        // Luo tämä raahaustoiminnon sisällä ja tallenna listaan?
+//        dollarChip = new Bet(new int[] {1,2}, value*10, 100, 17, Color.CADETBLUE, root, 1);
+        
+        root.getChildren().addAll(creteRouletteTable(), dollarChip);
         
         // Show stuff
-        stage.setScene(new Scene(g));
+        stage.setScene(new Scene(root));
         stage.setHeight(800);
         stage.setWidth(1000);
         stage.show();        
     }   
     
     /**
-     * Method for creating roulette table.
-     * @param g = Group used to lay text on top rectangle
-     * @param rtgl = rectangle for one number on the table
+     * Method for creating roulette table layout.
+     * @return Group with all the elements of the roulette table
      */
-    public void creteRouletteTable (Group g, Rectangle rtgl) {
-         
-        int value = 50; // scale value for rectangle sizing. 
-        int squareLoc = value, offset = value, x = value, y = value;
+    public Group creteRouletteTable () {
+        Group g = new Group();
+        Rectangle rtgl;
         
+        
+        int squareLoc = value, offset = value, x = value, y = value;
+        String text;
         // Loop for creating numbers 1 to 36
         for (int i = 1; i <= 39; i++) {
             rtgl = new Rectangle(x, y, (offset + offset / 2), offset);
@@ -76,7 +79,7 @@ public class GUI_Projectwork extends Application {
             }  
             
             // Adding numbers inside rectangles
-            String text = String.valueOf(i);
+            text = String.valueOf(i);
             if (i > 36) {
                 text = "2to1";
             }
@@ -102,12 +105,12 @@ public class GUI_Projectwork extends Application {
         
         // Adding zeroes
         int zeroOffset = (offset + offset / 2) + (offset + offset / 2) / 2; // offset value for zero text
-        String zero = "0"; // Zero text
+        text = "0"; // Zero text
         Text zeroText;
         
         // Adding 0 and 00 in a loop using offsets. 
-        // For some reason loop needs to be ran 3 times for code to work
-        for (int i = 0; i <= 2; i++ ) {
+        
+        for (int i = 0; i < 2; i++ ) {
             zeroText = new Text();
             // offset = offsets the rectangle x position
             // zeroOffset = ceates the x length for rectange
@@ -117,21 +120,98 @@ public class GUI_Projectwork extends Application {
             rtgl.setFill(Color.GREEN);
             
             // Adding numbers inside rectangles
-            zeroText.setText(zero);
+            zeroText.setText(text);
             zeroText.setX(offset);
             zeroText.setY(value);
             zeroText.setFont(Font.font(value-10));
             zeroText.setFill(Color.YELLOW);
             
             // Change text and location for 00 rectangle
-            if (i == 1) {
-                zero = "00";
-                offset += zeroOffset;
-            }
-            
+            text = "00";
+            offset += zeroOffset;
+                
             rtgl.setStroke(Color.WHITE);
             g.getChildren().addAll(rtgl, zeroText);
         }
+        
+        // Adding inner outside bets
+        text = "1ST12"; 
+        Text outsideBetText;
+        int outsideOffset = value;
+        for (int i = 1; i <= 3; i++ ) {
+            //q                 loc     loc     size        size
+            rtgl = new Rectangle(offset, outsideOffset, value*1.5, value*4);
+            rtgl.setFill(Color.GREEN);
+            rtgl.setStroke(Color.WHITE);
+            
+            // Adding numbers inside rectangles
+            outsideBetText = new Text();
+            outsideBetText.setText(text);
+            outsideBetText.setX(offset-10);
+            outsideBetText.setY(outsideOffset+value*2);
+            outsideBetText.setFont(Font.font(value-10));
+            outsideBetText.setFill(Color.YELLOW);
+            outsideBetText.setRotate(90);
+
+            g.getChildren().addAll(rtgl, outsideBetText);
+        
+            // Change text
+            if (i == 1) {
+                text = "2ND12";
+            } 
+            if (i == 2) {
+                text = "3RD12";
+            }
+            // offset Y cordinate
+            outsideOffset += value*4;
+        }
+        int outerOffset = value;
+        Color colour = Color.YELLOW;
+        // Adding outser outside bets
+        for (int i = 1; i <= 6; i++ ) {
+            // change text
+            if (i == 1) {
+                text = "1TO18";
+            }
+            if (i == 2) {
+                text = "EVEN";
+            }
+            if (i == 3) {
+                text = "RED";
+                colour = Color.RED;
+            }
+            if (i == 4) {
+                text = "BLACK";
+                colour = Color.BLACK;
+            }
+            if (i == 5) {
+                text = "ODD";
+                colour = Color.YELLOW;
+            }
+            if (i == 6) {
+                text = "18TO36";
+            }
+            
+            //q                 loc     loc     size        size
+            rtgl = new Rectangle(offset+value*1.5, outerOffset, value*1.5, value*2);
+            rtgl.setFill(Color.GREEN);
+            rtgl.setStroke(Color.WHITE);
+            
+            // Adding numbers inside rectangles
+            outsideBetText = new Text();
+            outsideBetText.setText(text);
+            outsideBetText.setX(offset+value*1.5);
+            outsideBetText.setY(outerOffset+ value + 10);
+            outsideBetText.setFont(Font.font(value-20));
+            outsideBetText.setFill(colour);
+            outsideBetText.setRotate(90);
+
+            g.getChildren().addAll(rtgl, outsideBetText);
+         
+            // offset Y cordinate
+            outerOffset += value*2;
+        }
+        return g;
     }
 }
 
