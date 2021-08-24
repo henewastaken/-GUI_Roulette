@@ -15,13 +15,20 @@ import javafx.scene.text.Text;
  *
  * @author henea
  */
-public class Chip extends Circle{
+public class Chip extends StackPane{
     int amount;
+    double x;
+    double y;
+    Paint paint;
     
-    public Chip(double x, double y, double r, Paint paint, StackPane g, int amount) {
+    public Chip(double x, double y, double r, Paint paint,  int amount) {
         this.amount = amount;
+        this.x = x;
+        this.y = y;
+        this.paint = paint;
         Circle chip = new Circle();
         chip.setRadius(r);
+        
 //        chip.setCenterX(x);
 //        chip.setCenterY(y);
         chip.setFill(paint);
@@ -38,14 +45,17 @@ public class Chip extends Circle{
 //        text.setX(chip.getCenterX()-7);
 //        text.setY(chip.getCenterY()+6);
         
-        g.setLayoutX(x);
-        g.setLayoutY(y);
+        setLayoutX(x);
+        setLayoutY(y);
         
-        g.getChildren().addAll(chip, text);        
+        getChildren().addAll(chip, text);        
     }
    
-    public int getAmount() {
-        return amount;
-    }
+    public int getAmount() { return amount; }
     
+    public double getX() { return x; }
+    
+    public double getY() { return y; }
+    
+    public Paint getPaint() { return paint; }
 }

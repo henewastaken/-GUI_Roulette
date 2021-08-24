@@ -13,12 +13,11 @@ import javafx.scene.shape.Circle;
  * Has numbers and amount
  * @author Henry Andersson
  */
-public class Bet extends Chip{
+public class Bet{
     int[] numbers;
     int amount;
 
-    public Bet(int[] numbers, double x, double y, double r, Paint paint, StackPane g, int amount) {
-        super(x, y, r, paint, g, amount);
+    public Bet(int[] numbers, double x, double y, int amount) {
         this.numbers = numbers;
         this.amount = amount;
     }

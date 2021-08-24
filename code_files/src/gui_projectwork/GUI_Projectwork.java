@@ -1,5 +1,6 @@
 package gui_projectwork;
 
+import com.sun.javafx.geom.AreaOp;
 import java.awt.TextField;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +45,7 @@ public class GUI_Projectwork extends Application {
     ArrayList blackNumbers = new ArrayList(Arrays.asList(blackNumbersHelper));
     int value = 50; // scale value for rectangle sizing. 
     Group root = new Group(); // Root group for roulette elements 
-    ArrayList<Node> allChips = new ArrayList<>();
+    ArrayList<Chip> allChips = new ArrayList<>();
     
     
     public static void main(String[] args) {
@@ -57,7 +58,6 @@ public class GUI_Projectwork extends Application {
        
         StackPane sp; // Used for creating chips
         VBox vb = new VBox();
-        int[] n = new int[6];
 
         // Create button to trigger ball spin
         Button spinbutton = new Button("Spin");
@@ -66,42 +66,43 @@ public class GUI_Projectwork extends Application {
         spinbutton.setLayoutY(380);
 
         // Adding elements to root group
-//        root.getChildren().addAll(creteRouletteTable(), spinbutton, vb);
+        root.getChildren().addAll(creteRouletteTable(), spinbutton, vb);
 
         // Create chips and add them to group
-        Chip dollarChip = new Chip(value * 10, 100, 17, Color.CADETBLUE, sp = new StackPane(), 1);
-        root.getChildren().add(sp);
-        Node dollarRoot = root.getChildren().get(0);
-        allChips.add(dollarRoot);
+        Chip dollarChip = new Chip(value * 10, 100, 17, Color.CADETBLUE, 1);
+        root.getChildren().add(dollarChip);
+//        Node dollarRoot = root.getChildren().get(3);
+        allChips.add(dollarChip);
+//        System.out.println(dollarRoot.getClass());
         
-        Chip fiveChip = new Chip(value * 10, 150, 17, Color.RED, sp = new StackPane(), 5);
-        root.getChildren().add(sp);
-        Node fiveroot = root.getChildren().get(1);
-        allChips.add(fiveroot);
+        Chip fiveChip = new Chip(value * 10, 150, 17, Color.RED, 5);
+        root.getChildren().add(fiveChip);
+//        Node fiveroot = root.getChildren().get(4);
+        allChips.add(fiveChip);
         
-        Chip tenChip = new Chip(value * 10, 200, 17, Color.YELLOW, sp = new StackPane(), 10);
-        root.getChildren().add(sp);
-        Node tenRoot = root.getChildren().get(2);
-        allChips.add(tenRoot);
+        Chip tenChip = new Chip(value * 10, 200, 17, Color.YELLOW, 10);
+        root.getChildren().add(tenChip);
+//        Node tenRoot = root.getChildren().get(5);
+        allChips.add(tenChip);
         
-        Chip twentyFiveChip = new Chip(value * 10, 250, 17, Color.LIGHTGREEN, sp = new StackPane(), 25);
-        root.getChildren().add(sp);
-        Node twentyFiveroot = root.getChildren().get(3);
-        allChips.add(twentyFiveroot);
+        Chip twentyFiveChip = new Chip(value * 10, 250, 17, Color.LIGHTGREEN, 25);
+        root.getChildren().add(twentyFiveChip);
+//        Node twentyFiveroot = root.getChildren().get(6);
+        allChips.add(twentyFiveChip);
         
-        Chip hundredChip = new Chip(value * 10, 300, 17, Color.BLACK, sp = new StackPane(), 100);
-        root.getChildren().add(sp);
-        Node hundredRoot = root.getChildren().get(4);
-        allChips.add(hundredRoot);
+        Chip hundredChip = new Chip(value * 10, 300, 17, Color.BLACK, 100);
+        root.getChildren().add(hundredChip);
+//        Node hundredRoot = root.getChildren().get(7);
+        allChips.add(hundredChip);
 
         Label tf = new Label("Testi teksti");
         vb.getChildren().add(tf);
         vb.setLayoutX(value * 13);
 
         // Testit kaikille chipeille, että event toimii
-        for (Node i : allChips) {
+        for (Chip i : allChips) {
             i.setOnMousePressed((t) -> {
-                System.out.println(i + " chip pressed");
+                System.out.println(i.getAmount() + " chip pressed");
         });}
 //        fiveroot.setOnMousePressed((t) -> {
 //            System.out.println("5 Dollar chip pressed");
@@ -115,18 +116,18 @@ public class GUI_Projectwork extends Application {
 //        hundredRoot.setOnMousePressed((t) -> {
 //            System.out.println("100 Dollar chip pressed");
 //        });
-
+ 
         // Dragging operations for dollar chip
-        for (Node i : allChips) {
+        allChips.forEach(i -> {
             i.setOnMouseEntered(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     i.setCursor(Cursor.HAND);
                 }
             });
-        }
+        });
 
-        for (Node i : allChips) {
+        allChips.forEach(i -> {
             i.setOnMouseDragged(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
@@ -135,22 +136,21 @@ public class GUI_Projectwork extends Application {
                     i.setLayoutY(mouseEvent.getSceneY());
                 }
             });
-        }
+        });
         
-        for (Node i : allChips) {
+        allChips.forEach(i -> {
             i.setOnMouseReleased(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
                     i.setCursor(Cursor.HAND);
                     betsHandlerer(betsList, i.getLayoutX(), i.getLayoutY(), i);
-                    i.relocate(500, 100);
+                    i.relocate(i.getX(), i.getY());
                     
                     // koko kasvaa, mutta miten saan ne liikuteltaviski?
                     System.out.println(allChips.size());
                 }
             });
-        }
-//        
+        });       
 
         // Luo tämä raahaustoiminnon sisällä ja tallenna listaan?
 //        dollarChip = new Bet(new int[] {1,2}, value*10, 100, 17, Color.CADETBLUE, sp, 1);
@@ -163,30 +163,112 @@ public class GUI_Projectwork extends Application {
         stage.show();
     }
 
+    // Returns element closest to target in arr[]
+    public double findClosest(double arr[], double target) {
+        int n = arr.length;
+        // Corner cases
+        if (target <= arr[0])
+            return arr[0];
+        if (target >= arr[n - 1])
+            return arr[n - 1];
+        
+        // Doing binary search
+        int i = 0, j = n, mid = 0;
+        while (i < j) {
+            mid = (i + j) / 2;
+            if (arr[mid] == target)
+                return arr[mid];
+            
+            // If target is less than array element, then search in left
+            if (target < arr[mid]) {
+                // If target is greater than previous
+                // to mid, return closest of two
+                if (mid > 0 && target > arr[mid - 1])
+                    return getClosest(arr[mid - 1], arr[mid], target);
+                // Repeat for left half
+                j = mid;             
+            }
+ 
+            // If target is greater than mid
+            else {
+                if (mid < n-1 && target < arr[mid + 1])
+                    return getClosest(arr[mid],
+                          arr[mid + 1], target);               
+                i = mid + 1; // update i
+            }
+        }
+ 
+        // Only single element left after search
+        return arr[mid];
+    }
+    // Used with findClosest method. findClosest calls this.
+    public double getClosest(double val1, double val2, double target) {
+        if (target - val1 >= val2 - target)
+            return val2;       
+        else
+            return val1;       
+    }
     
     
-    public ArrayList<Bet> betsHandlerer(ArrayList<Bet> betsList, double x, double y, Node i) {
-        StackPane sp;
+    public ArrayList<Bet> betsHandlerer(ArrayList<Bet> betsList, double x, double y, Chip i) {
+        StackPane sp  ;
+        double xsc = value + value / 2; // sscuare center locations X axis
+        double xse = xsc + xsc / 2; // Square edge locations X axis
+        double[] xSnapLocs = {value - value / 2, xsc, xse, xsc*2, xse + xsc, xsc*3, xsc*4, xsc*5 };
+        
+        double yse = value / 2; // Square edge location Y axis
+        // This could be done much smater, but it's midnight brain time LETSGOO!!
+        double[] ySnapLocs = {0,yse,yse*2,yse*3,yse*4,yse*5,yse*6,yse*7,yse*8, 
+                             yse*9,yse*10,yse*11, yse*12, yse*13,yse*14,yse*15,
+                             yse*16,yse*17,yse*18,yse*19,yse*20,yse*21,yse*22,
+                             yse*23,yse*24,yse*26}; //yse*25 is missing on purpose. No bet goes there
+        
+        Arrays.sort(ySnapLocs);
+        // Calculate nearest position
+        double xClosest = findClosest(xSnapLocs, x);
+        double yClosest = findClosest(ySnapLocs, y);
+        System.out.println("closest " + yClosest);
+//        int amount = i.parentProperty();
 //        Bet bet = new Bet(new int[]{1,2}, x, y, 17, Color.CADETBLUE, sp, 1);
 //        betsList.add(bet);      
 //        int index = root.getChildren().indexOf()
-        
-        Chip movedChip = new Chip(x, y, 17, Color.CADETBLUE, sp = new StackPane(), 1);
-        root.getChildren().add(sp);
-        Node makeMoovable = root.getChildren().get(root.getChildren().indexOf(sp));
-        allChips.add(makeMoovable);
+        System.out.println(i.getAmount() + " " + i.getX());
+        // Check that is placed on roulette table
+        // x (width) axix = between value and 425
+        // y (height) axis = between 0 and 700
+        if (x >=0 && x <= 425 && y >= 0 && y <= 700) {
+            
+            Chip movedChip = new Chip(xClosest, yClosest + 5, 17, i.getPaint(), i.getAmount());
+            root.getChildren().add(movedChip);
+//            Node makeMoovable = root.getChildren().get(root.getChildren().indexOf(movedChip));
+            allChips.add(movedChip);
+            System.out.println("moved chip amount " + movedChip.getAmount());
+            calculateHittedNumbers(xClosest, yClosest);
+            Bet bet = new Bet(new int[] {1}, x, y, movedChip.getAmount());
+        }
 //        printArray(allChips);
         return betsList;
     }
 
     /**
+     * Method for calculating the numbers chip hits by coordinates
+     */
+    public int[] calculateHittedNumbers(double x, double y) {
+        int[] numbers = new int[1];
+        
+        double xNumber = (x + value) % value*1.5;
+        System.out.println("on calculated, x: " + x + ", y: " + y);
+        return numbers;
+    }
+    
+    /**
      * Print method for ArrayList. For testing.
      *
      * @param list ArrayList to be printed.
      */
-    public void printArray(ArrayList<Node> list) {
+    public void printArray(ArrayList<?> list) {
         for (int i = 0; i < list.size(); i++) {
-            System.out.println(list.get(i).parentProperty());
+            System.out.println(list.get(i));
         }
     }
 
