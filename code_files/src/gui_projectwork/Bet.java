@@ -1,7 +1,9 @@
 
 package gui_projectwork;
 
+import java.util.Arrays;
 import javafx.scene.Group;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
@@ -15,7 +17,7 @@ public class Bet extends Chip{
     int[] numbers;
     int amount;
 
-    public Bet(int[] numbers, double x, double y, double r, Paint paint, Group g, int amount) {
+    public Bet(int[] numbers, double x, double y, double r, Paint paint, StackPane g, int amount) {
         super(x, y, r, paint, g, amount);
         this.numbers = numbers;
         this.amount = amount;
@@ -24,9 +26,12 @@ public class Bet extends Chip{
     public int[] getNumbers() {
         return numbers;
     }
-    
-    public int getAmount() {
-        return amount;
+
+    // Override toString method. Mostly for testing purposes.
+    @Override
+    public String toString() {
+        return "Bet{" + "numbers=" + Arrays.toString(numbers) + " amount: " + amount + '}';
     }
+    
 
 }
