@@ -211,7 +211,6 @@ public class GUI_Projectwork extends Application {
     
     
     public ArrayList<Bet> betsHandlerer(ArrayList<Bet> betsList, double x, double y, Chip i) {
-        StackPane sp  ;
         double xsc = value + value / 2; // sscuare center locations X axis
         double xse = xsc + xsc / 2; // Square edge locations X axis
         double[] xSnapLocs = {value - value / 2, xsc, xse, xsc*2, xse + xsc, xsc*3, xsc*4, xsc*5 };
