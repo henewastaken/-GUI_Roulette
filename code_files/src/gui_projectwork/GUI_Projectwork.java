@@ -4,6 +4,7 @@ import com.sun.javafx.geom.AreaOp;
 import java.awt.TextField;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import javafx.application.Application;
 import javafx.beans.Observable;
@@ -43,10 +44,10 @@ public class GUI_Projectwork extends Application {
 
     Integer blackNumbersHelper[] = new Integer[]{2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35};
     ArrayList blackNumbers = new ArrayList(Arrays.asList(blackNumbersHelper));
-    int value = 50; // scale value for rectangle sizing. 
+    final int value = 50; // scale value for rectangle sizing. 
     Group root = new Group(); // Root group for roulette elements 
     ArrayList<Chip> allChips = new ArrayList<>();
-    
+    final int chipRadius = 15;
     
     public static void main(String[] args) {
         launch(args);
@@ -69,28 +70,28 @@ public class GUI_Projectwork extends Application {
         root.getChildren().addAll(creteRouletteTable(), spinbutton, vb);
 
         // Create chips and add them to group
-        Chip dollarChip = new Chip(value * 10, 100, 17, Color.CADETBLUE, 1);
+        Chip dollarChip = new Chip(value * 10, 100, chipRadius, Color.CADETBLUE, 1);
         root.getChildren().add(dollarChip);
 //        Node dollarRoot = root.getChildren().get(3);
         allChips.add(dollarChip);
 //        System.out.println(dollarRoot.getClass());
         
-        Chip fiveChip = new Chip(value * 10, 150, 17, Color.RED, 5);
+        Chip fiveChip = new Chip(value * 10, 150, chipRadius, Color.RED, 5);
         root.getChildren().add(fiveChip);
 //        Node fiveroot = root.getChildren().get(4);
         allChips.add(fiveChip);
         
-        Chip tenChip = new Chip(value * 10, 200, 17, Color.YELLOW, 10);
+        Chip tenChip = new Chip(value * 10, 200, chipRadius, Color.YELLOW, 10);
         root.getChildren().add(tenChip);
 //        Node tenRoot = root.getChildren().get(5);
         allChips.add(tenChip);
         
-        Chip twentyFiveChip = new Chip(value * 10, 250, 17, Color.LIGHTGREEN, 25);
+        Chip twentyFiveChip = new Chip(value * 10, 250, chipRadius, Color.LIGHTGREEN, 25);
         root.getChildren().add(twentyFiveChip);
 //        Node twentyFiveroot = root.getChildren().get(6);
         allChips.add(twentyFiveChip);
         
-        Chip hundredChip = new Chip(value * 10, 300, 17, Color.BLACK, 100);
+        Chip hundredChip = new Chip(value * 10, 300, chipRadius, Color.BLACK, 100);
         root.getChildren().add(hundredChip);
 //        Node hundredRoot = root.getChildren().get(7);
         allChips.add(hundredChip);
@@ -147,7 +148,7 @@ public class GUI_Projectwork extends Application {
                     i.relocate(i.getX(), i.getY());
                     
                     // koko kasvaa, mutta miten saan ne liikuteltaviski?
-                    System.out.println(allChips.size());
+//                    System.out.println(allChips.size());
                 }
             });
         });       
@@ -213,8 +214,9 @@ public class GUI_Projectwork extends Application {
     public ArrayList<Bet> betsHandlerer(ArrayList<Bet> betsList, double x, double y, Chip i) {
         double xsc = value + value / 2; // sscuare center locations X axis
         double xse = xsc + xsc / 2; // Square edge locations X axis
-        double[] xSnapLocs = {value - value / 2, xsc, xse, xsc*2, xse + xsc, xsc*3, xsc*4, xsc*5 };
         
+        double[] xSnapLocs = {value - value / 2, xsc, xse, xsc*2, xse + xsc, xsc*3, xsc*4, xsc*5 };
+        Arrays.sort(xSnapLocs);
         double yse = value / 2; // Square edge location Y axis
         // This could be done much smater, but it's midnight brain time LETSGOO!!
         double[] ySnapLocs = {0,yse,yse*2,yse*3,yse*4,yse*5,yse*6,yse*7,yse*8, 
@@ -223,26 +225,58 @@ public class GUI_Projectwork extends Application {
                              yse*23,yse*24,yse*26}; //yse*25 is missing on purpose. No bet goes there
         
         Arrays.sort(ySnapLocs);
-        // Calculate nearest position
-        double xClosest = findClosest(xSnapLocs, x);
-        double yClosest = findClosest(ySnapLocs, y);
-        System.out.println("closest " + yClosest);
-//        int amount = i.parentProperty();
-//        Bet bet = new Bet(new int[]{1,2}, x, y, 17, Color.CADETBLUE, sp, 1);
-//        betsList.add(bet);      
-//        int index = root.getChildren().indexOf()
-        System.out.println(i.getAmount() + " " + i.getX());
+            
         // Check that is placed on roulette table
         // x (width) axix = between value and 425
         // y (height) axis = between 0 and 700
         if (x >=0 && x <= 425 && y >= 0 && y <= 700) {
+            // Calculate nearest position
+            double xClosest = findClosest(xSnapLocs, x);
+            double yClosest = findClosest(ySnapLocs, y);
+
+//            System.out.println("closest " + xClosest);
+    //        int amount = i.parentProperty();
+    //        Bet bet = new Bet(new int[]{1,2}, x, y, 17, Color.CADETBLUE, sp, 1);
+    //        betsList.add(bet);      
+    //        int index = root.getChildren().indexOf()
+//            System.out.println(i.getAmount() + " " + i.getX());
+ 
+
             
-            Chip movedChip = new Chip(xClosest, yClosest + 5, 17, i.getPaint(), i.getAmount());
+            // Use helper list io get the index used in calculating numbers under bet
+            ArrayList<Double> xhelplist = new ArrayList<>();
+            for  (double j : xSnapLocs) {
+                xhelplist.add(j);
+            }
+//            System.out.println("index " + helplist.indexOf(xClosest));
+            int xindex = xhelplist.indexOf(xClosest);
+            
+            ArrayList<Double> yhelplist = new ArrayList<>();
+            for (double j : ySnapLocs) {
+                yhelplist.add(j);
+            }
+            
+            int yindex = yhelplist.indexOf(yClosest);
+            
+            
+            Chip movedChip = new Chip(xClosest, yClosest + 5, chipRadius, i.getPaint(), i.getAmount());
             root.getChildren().add(movedChip);
 //            Node makeMoovable = root.getChildren().get(root.getChildren().indexOf(movedChip));
             allChips.add(movedChip);
-            System.out.println("moved chip amount " + movedChip.getAmount());
-            calculateHittedNumbers(xClosest, yClosest);
+//            System.out.println("moved chip amount " + movedChip.getAmount());
+//            System.out.println(yindex);
+//            System.out.println(xindex);
+            
+         
+
+//            System.out.println(Arrays.asList(xSnapLocs).indexOf(150.0));
+            int[] l = calculateHittedNumbers(xindex, yindex);
+            if (l != null) {
+                for (int k: l) {
+                    System.out.print(k+ ", ");
+                }
+            }
+             
             Bet bet = new Bet(new int[] {1}, x, y, movedChip.getAmount());
         }
 //        printArray(allChips);
@@ -250,14 +284,143 @@ public class GUI_Projectwork extends Application {
     }
 
     /**
-     * Method for calculating the numbers chip hits by coordinates
+     * Method for calculating the numbers chip hits by coordinates. 
+     * @param xIndex index of x axis list chip hits
+     * @param yIndex index of y axis list chip hits
+     * @return array of numbers chip is on top of or null if chip outside of coordinates.
      */
-    public int[] calculateHittedNumbers(double x, double y) {
-        int[] numbers = new int[1];
+    public int[] calculateHittedNumbers(int xIndex, int yIndex) {
+        int[] numbersToReturn = new int[1];
+//        double xNumber = (x + value) % value*1.5;
+        System.out.println("col: " + xIndex + " row " + yIndex);
+         
+        int column = (int) Math.ceil(xIndex /2);;
+        int row = (int) Math.ceil(yIndex / 2 -1);
+        // Use 2D array to get center numbers
+        int[][] numbers = new int[13][3];
+        int n = 1;
+        // Add numbers 1-36 to 2d array [row][column]
+        for (int col = 0; col < 12; col++) {
+            for (int ro = 0; ro < 3; ro++) {
+                numbers[col][ro] = n;
+                n++;
+            }
+        }
         
-        double xNumber = (x + value) % value*1.5;
-        System.out.println("on calculated, x: " + x + ", y: " + y);
-        return numbers;
+/*
+
+yIndex = 0, xIndex = 1 is the basket
+xIndex == 0 && yIndex > 0 && yIndex % 2 != 0 is double street ????
+*/
+
+        /*
+        Calculating center number that chip is on top of. 
+        */
+        if(xIndex < 6 && xIndex % 2 != 0 && yIndex > 0  && yIndex % 2 == 0) {
+            System.out.println("straight");
+
+            // Add the number to array
+            numbersToReturn[0] = numbers[row][column];
+            return numbersToReturn;
+        }
+
+        /*
+        Calculate the shared numbers chip is on top of.
+        */
+        
+        // Street (3 adjacent numbers)
+        else if (xIndex == 0 && yIndex > 0 && yIndex % 2 == 0) {
+            System.out.println("street");
+
+            // Increase the numbersToReturn array size to match numbers in bet
+            int[] temp = new int[3];
+            for (int i = 0; i < numbersToReturn.length; i++) {
+                temp[i] = numbersToReturn[i];
+            }
+            numbersToReturn = temp;
+
+            // Add numbers to numbersToReturn
+            numbersToReturn[0] = numbers[row][0];
+            numbersToReturn[1] = numbers[row][0] + 1;
+            numbersToReturn[2] = numbers[row][0] + 2;
+
+            return numbersToReturn;
+        }
+        
+        // Double street (6 adjacent numbers)
+        else if (xIndex == 0 && yIndex > 0 && yIndex % 2 != 0 && yIndex <= 23) {
+            System.out.println("double street");
+            
+            // Increase the numbersToReturn array size to match numbers in bet
+            int[] temp = new int[6];
+            for (int i = 0; i < numbersToReturn.length; i++) {
+                temp[i] = numbersToReturn[i];
+            }
+            numbersToReturn = temp;
+
+            // Add numbers to numbersToReturn
+            for (int i = 0; i < 6; i++) {
+                numbersToReturn[i] = numbers[row][0] + i;
+            }
+
+            return numbersToReturn;
+        }
+        
+        // Limitations for split and orner bet locations
+        else if (xIndex < 6 && xIndex % 2 == 0) {
+
+            // Calculate adjacent numbers using floor and celi functions
+            int leftNro = (int) Math.floor( xIndex*1.0 / 3); 
+            int rightNro = (int) Math.ceil( xIndex*1.0 / 3);
+          
+            // Split x axix (sideways)
+            if (yIndex % 2 == 0) {
+                System.out.println("split");
+                // Increase the numbersToReturn array size to 2
+                int[] temp = new int[2];
+                for (int i = 0; i < numbersToReturn.length; i++) {
+                    temp[i] = numbersToReturn[i];
+                }
+                numbersToReturn = temp;
+                
+                // Add lefr and right number to numbersToReturn
+                numbersToReturn[0] = numbers[row][leftNro];
+                numbersToReturn[1] = numbers[row][rightNro];
+                
+                return numbersToReturn;
+                
+            }
+            // Corner
+            else if (yIndex > 1 && yIndex <= 23) {
+                System.out.println("corner");
+                 // Calculate corner numbers
+                int topLeft = numbers[row][leftNro]; 
+                int topRight = numbers[row][rightNro]; 
+                int botmLeft = topRight + 2;
+                int botmRight = botmLeft + 1;
+//                System.out.println(topLeft + ", " + topRight + ", " + botmLeft + ", " + botmRight);s
+                
+                // Increase the numbersToReturn array size to match numbers in bet
+                int[] temp = new int[4];
+                for (int i = 0; i < numbersToReturn.length; i++) {
+                    temp[i] = numbersToReturn[i];
+                }
+                numbersToReturn = temp;
+                
+                // Add numbers to numbersToReturn
+                numbersToReturn[0] = topLeft;
+                numbersToReturn[1] = topRight;
+                numbersToReturn[2] = botmLeft;
+                numbersToReturn[3] = botmRight;
+                
+                return numbersToReturn;
+            }
+            
+            
+        }
+
+        // Return numbers that chip is on top
+        return null;
     }
     
     /**
