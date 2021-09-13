@@ -1,6 +1,8 @@
 package gui_projectwork;
 
+import java.util.Random;
 import com.sun.javafx.geom.AreaOp;
+import com.sun.javafx.scene.control.InputField;
 import java.awt.TextField;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,11 +19,13 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -60,7 +64,11 @@ public class GUI_Projectwork extends Application {
     ArrayList<Chip> betsList = new ArrayList<>();
     Stack<Chip> undoStack = new Stack<>(); // Stack for undo process
     Stack<Chip> redoStack = new Stack<>(); // Stack fo redo process
-
+    int randomWinNro;
+    int bankroll = 0;
+    Label bankrollLabel;
+    Label netWinLabel;
+    
     public static void main(String[] args) {
         launch(args);
     }
@@ -111,7 +119,10 @@ public class GUI_Projectwork extends Application {
                     Chip undoChip = undoStack.pop();
                     redoStack.add(undoChip);
                     root.getChildren().remove(undoChip);
+                    betsList.remove(undoChip);
                     System.out.println("undo chip numbers: " + Arrays.toString(undoChip.getNumbers()));
+                    bankroll += undoChip.getAmount();
+                    updateLabel(bankrollLabel, "Bankroll: " , bankroll);
                 }
             }
         });
@@ -125,8 +136,11 @@ public class GUI_Projectwork extends Application {
                     Chip redoChip = redoStack.pop();
                     undoStack.add(redoChip);
                     root.getChildren().add(redoChip);
+                    betsList.add(redoChip);
                     System.out.println("Redo chip numers: " + Arrays.toString(redoChip.getNumbers()));
-                }
+                    bankroll += redoChip.getAmount();
+                    updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+                } 
             }
         });
 
@@ -135,7 +149,15 @@ public class GUI_Projectwork extends Application {
         spinbutton.setPrefSize(value * 3, value * 3);
         spinbutton.setLayoutX(value * 9);
         spinbutton.setLayoutY(380);
-
+        // Spin button action calculates new winning number
+        spinbutton.setOnAction((t) -> {
+            Random rand = new Random();
+            randomWinNro = rand.nextInt(38);
+            System.out.println("New winner number: " + randomWinNro);
+            int netWin = calculateWinnings();
+            updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+            updateLabel(netWinLabel, "Net win: " , netWin);
+        });
         // Adding elements to root group
         root.getChildren().addAll(creteRouletteTable(), spinbutton, vb);
 
@@ -166,9 +188,16 @@ public class GUI_Projectwork extends Application {
 //        Node hundredRoot = root.getChildren().get(7);
         allChips.add(hundredChip);
 
-        Label tf = new Label("Testi teksti");
-        vb.getChildren().add(tf);
+        bankroll = askForBankroll();
+        // Ask for bankroll and assing that to label
+        bankrollLabel = new Label();
+        netWinLabel = new Label();
+        updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+        updateLabel(netWinLabel, "Net win: " , 0); 
+        vb.getChildren().add(bankrollLabel);
         vb.setLayoutX(value * 13);
+        vb.getChildren().add(netWinLabel);
+        vb.setLayoutX(value * 14);
 
         // Testit kaikille chipeille, että event toimii
         allChips.forEach(i -> {
@@ -177,13 +206,13 @@ public class GUI_Projectwork extends Application {
             });
         });
 
-        // Dragging operations for dollar chip
+        // Dragging operations for chips
         allChips.forEach(i -> {
             i.setOnMouseEntered(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent mouseEvent) {
                     i.setCursor(Cursor.HAND);
-                }
+                } 
             });
         });
 
@@ -223,6 +252,60 @@ public class GUI_Projectwork extends Application {
         stage.show();
     }
 
+    /**
+     * Updates bankrollLabel
+     */
+    public void updateLabel (Label label, String text, int number) {
+        label.setText(text + String.valueOf(number));
+    }
+    /**
+     * Asks for bankroll with inputdialog, and checks that input is integer
+     * @return players bankroll
+     */
+    public int askForBankroll() {
+        boolean stopper = true;
+        while (stopper) {
+            TextInputDialog tid = new TextInputDialog();
+            tid.setTitle("Input your bankroll");
+            String s = tid.showAndWait().get();
+            try { 
+                bankroll = Integer.parseInt(s);
+                stopper = false;
+            } catch (Exception e) {
+                Alert a = new Alert(Alert.AlertType.CONFIRMATION, "Input only numbers");
+                a.showAndWait();
+            }
+        }
+        
+        return bankroll;
+    }
+
+    /**
+     * Calculate winnings and updates bankroll. Also prints net win/loss
+     * @return calculated netWin
+     */
+    public int calculateWinnings() {
+        int totalWin = 0;
+        int netWin = 0;
+        ArrayList<Chip> helpList = new ArrayList<>(betsList);
+        // Calculate winnings
+        for (Chip c : helpList) {
+            if (c.isWinner(randomWinNro)) {
+                netWin += c.getTotalwinnig();
+                System.out.println("winner");
+                totalWin += c.getTotalwinnig();
+            } else {
+                netWin -= c.getAmount();
+                root.getChildren().remove(c);
+                betsList.remove(c);
+            }
+        }
+        bankroll += totalWin;
+        helpList.clear(); // clear the helplist
+//        System.out.println("Total win is: " + totalWin);
+            
+        return netWin;
+    }
     // Returns element closest to target in arr[]
     public double findClosest(double arr[], double target) {
         int n = arr.length;
@@ -330,17 +413,17 @@ public class GUI_Projectwork extends Application {
                 isOutside = true;
                 // 1-12
                 if (yindex > 0 && yindex < 9) {
-                    System.out.println("1-12");
+//                    System.out.println("1-12");
                     yClosest = ySnapLocs[5];
                 }
                 // 13-24
                 if (yindex >= 9 && yindex < 17) {
-                    System.out.println("13-24");
+//                    System.out.println("13-24");
                     yClosest = ySnapLocs[13];
                 }
                 // 25-36
                 if (yindex >= 17 && yindex < 24) {
-                    System.out.println("25-36");
+//                    System.out.println("25-36");
                     yClosest = ySnapLocs[21];
                 }
                 // No bet goes here
@@ -378,8 +461,7 @@ public class GUI_Projectwork extends Application {
 //            System.out.println("x: " + xindex+ ", y: " + yindex);
             // Create new chip from the moved chip
             Chip movedChip = new Chip(xClosest, yClosest + 5, chipRadius, c.getPaint(), c.getAmount());
-            root.getChildren().add(movedChip);
-            allChips.add(movedChip);
+
 
 //            if (isOutside) {
 //                
@@ -388,28 +470,42 @@ public class GUI_Projectwork extends Application {
             if (isOutside) {
                 int[] z = calculateOutsideBet(xindex, yindex);
 //                System.out.println(Arrays.toString(z));
-                System.arraycopy(z, 0, l, 0, l.length);
+//                System.arraycopy(z, 0, l, 0, l.length);
                 l = z;
             } else {
                 int[] z = calculateHittedNumbers(xindex, yindex);
                 if (z != null) {
-                    System.out.println(Arrays.toString(z));
+//                    System.out.println(Arrays.toString(z));
                     System.arraycopy(z, 0, l, 0, l.length);
                     l = z;
                 }
             }
             
 //            l = isOutside ? calculateOutsideBet(xindex, yindex) : calculateHittedNumbers(xindex, yindex);
-            System.out.println("print l: " + Arrays.toString(l));
+//            System.out.println("print l: " + Arrays.toString(l));
             if (l != null) {
-                // Set data to the chip
-                movedChip.setNumbers(l);
-                movedChip.setBetMultiplier();
-                betsList.add(movedChip);
-                System.out.println("moved chip numbers: " + Arrays.toString(movedChip.numbers));
+                
+                // Check that bankroll won't go negative
+                if (bankroll - movedChip.getAmount() >= 0) {
+                    root.getChildren().add(movedChip);
+                    allChips.add(movedChip);
+                   // Set data to the chip
+                    movedChip.setNumbers(l);
+                    movedChip.setBetMultiplier();
+                    betsList.add(movedChip);
+                    undoStack.add(movedChip);
+                    bankroll -= movedChip.getAmount(); 
+                    updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+                    
+                }else {
+                    Alert a = new Alert(Alert.AlertType.CONFIRMATION, "Not enough money for that");
+                    a.showAndWait();
+                }
+                
+                
+//                System.out.println("moved chip numbers: " + Arrays.toString(movedChip.numbers));
 //                printArray(betsList);
-                undoStack.add(movedChip);
-                System.out.println("undoStack size: " + undoStack.size());
+//                System.out.println("undoStack size: " + undoStack.size());
             }
         }
 
@@ -471,7 +567,8 @@ public class GUI_Projectwork extends Application {
             // increase numbersToRetrun size to match qamount of numbers needed
             int[] temp = new int[18];
             System.arraycopy(numbersToReturn, 0, temp, 0, numbersToReturn.length);
-
+            numbersToReturn = temp;
+            
             // Even numbers
             if (yindex >= 5 && yindex <= 8) {
                 int n = 0;
@@ -520,7 +617,7 @@ public class GUI_Projectwork extends Application {
      */
     public int[] calculateHittedNumbers(int xIndex, int yIndex) {
         int[] numbersToReturn = new int[1];
-        System.out.println("x " + xIndex + " y " + yIndex);
+//        System.out.println("x " + xIndex + " y " + yIndex);
 
         int column = (int) Math.ceil(xIndex / 2);
         int row = (int) Math.ceil(yIndex / 2 - 1);
@@ -546,7 +643,7 @@ public class GUI_Projectwork extends Application {
 //                System.out.println("straight");
             // Add the number to array
             numbersToReturn[0] = numbers[row][column];
-            System.out.println(numbersToReturn[0]);
+//            System.out.println(numbersToReturn[0]);
             return numbersToReturn;
         } /*
          Calculate the shared numbers chip is on top of.

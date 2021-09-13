@@ -23,6 +23,7 @@ public class Chip extends StackPane {
     double y;
     Paint paint;
     int betMultiplier;
+    boolean isWinner = false;
 
     public Chip(double x, double y, double r, Paint paint, int amount) {
         this.amount = amount;
@@ -74,9 +75,10 @@ public class Chip extends StackPane {
 
     // Kun chippi asetetaan pöydälle lisätään tähän numerot jotka asetetaan betsLsitiin mainissa
     public void setNumbers(int[] n) {
-        System.out.println("in chip numbers: " + Arrays.toString(n));
+//        System.out.println("in chip numbers: " + Arrays.toString(n));
         System.arraycopy(n, 0, this.numbers, 0, this.numbers.length);
         this.numbers = n;
+        setBetMultiplier();
     }
 
     public int[] getNumbers() {
@@ -93,7 +95,10 @@ public class Chip extends StackPane {
         }
         return false;
     }
-
+    
+    public boolean getWinner() {
+        return isWinner;
+    }
     public int getBetMultiplier() {
         return betMultiplier;
     }
