@@ -1,24 +1,14 @@
 package gui_projectwork;
 
-import java.util.Random;
-import com.sun.javafx.geom.AreaOp;
-import com.sun.javafx.scene.control.InputField;
-import java.awt.TextField;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 import javafx.application.Application;
-import javafx.beans.Observable;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
-import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -26,32 +16,34 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.DragEvent;
-import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCharacterCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.TransferMode;
-import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
+/*
+TODO:
+- More stat stuff
+- Chips are draggable only once, undo only way to cancel move
+- Same bet menuitem and functionality
+- Martingale menuitem and functionality
+*/
+
 
 /**
- * A roulette calculator.
+ * Roulette calculator.
+ * First user imputs bankroll. 
+ * Then user gets to place chips on roulette table and calclulator will show stats.
+ * Spin button will show in new window roulette wheel and spin the ball.
  *
- * @author Henry Andersson, henry.andersson(at)tuni.fi
- *
+ * @author Henry Andersson, henry.andersson<at>tuni.fi
+ * 
  */
 public class GUI_Projectwork extends Application {
 
@@ -66,8 +58,16 @@ public class GUI_Projectwork extends Application {
     Stack<Chip> redoStack = new Stack<>(); // Stack fo redo process
     int randomWinNro;
     int bankroll = 0;
+    int totalBet = 0;
     Label bankrollLabel;
+    Label winLabel;
     Label netWinLabel;
+    Label totalBetLabel;
+    final String bankrollText = "Bankroll: ";
+    final String totalBetText = "Total bet: ";
+    final String winLabelText = "Win: ";
+    final String netWinText = "Net win: ";
+    
     
     public static void main(String[] args) {
         launch(args);
@@ -80,7 +80,7 @@ public class GUI_Projectwork extends Application {
         VBox vb = new VBox();
         BorderPane bp = new BorderPane();
 
-        // Create a menu bar
+        // Create file menu
         Menu file = new Menu("_File");
         //Exititem
         MenuItem exitItem = new MenuItem("E_xit");
@@ -97,9 +97,24 @@ public class GUI_Projectwork extends Application {
         redoItem.setMnemonicParsing(true);
         redoItem.setAccelerator(new KeyCharacterCombination("z", KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
         file.getItems().add(redoItem);
-
+        
+        // Create edit menu
+        Menu edit = new Menu("_Edit");
+        // Clearitem
+        MenuItem clearItem = new MenuItem("_Clear table");
+        clearItem.setMnemonicParsing(true);
+        clearItem.setAccelerator(new KeyCharacterCombination("C", KeyCombination.SHIFT_DOWN));
+        edit.getItems().add(clearItem);
+        
+        // Clear event clears the table
+        clearItem.setOnAction((t) -> {
+            while (!undoStack.isEmpty()) {
+                undoAction();
+            }
+        });
+        
         MenuBar menuBar = new MenuBar();
-        menuBar.getMenus().addAll(file);
+        menuBar.getMenus().addAll(file, edit);
         root.getChildren().add(menuBar);
 
         // Handle close event
@@ -113,16 +128,8 @@ public class GUI_Projectwork extends Application {
         undoItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
-                if (undoStack.isEmpty()) {
-                    System.out.println("undo stack empty");
-                } else {
-                    Chip undoChip = undoStack.pop();
-                    redoStack.add(undoChip);
-                    root.getChildren().remove(undoChip);
-                    betsList.remove(undoChip);
-                    System.out.println("undo chip numbers: " + Arrays.toString(undoChip.getNumbers()));
-                    bankroll += undoChip.getAmount();
-                    updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+                if (!undoStack.isEmpty()) {
+                    undoAction();
                 }
             }
         });
@@ -130,81 +137,100 @@ public class GUI_Projectwork extends Application {
         redoItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
-                if (redoStack.isEmpty()) {
-                    System.out.println("redo stack empty");
-                } else {
+                if (!redoStack.isEmpty()) {
                     Chip redoChip = redoStack.pop();
                     undoStack.add(redoChip);
                     root.getChildren().add(redoChip);
                     betsList.add(redoChip);
-                    System.out.println("Redo chip numers: " + Arrays.toString(redoChip.getNumbers()));
-                    bankroll += redoChip.getAmount();
-                    updateLabel(bankrollLabel, "Bankroll: " , bankroll);
+                    bankroll -= redoChip.getAmount();
+                    updateLabel(bankrollLabel, bankrollText , bankroll);
+                    totalBet += redoChip.getAmount();
+                    updateLabel(totalBetLabel, totalBetText, totalBet);
                 } 
             }
         });
-
+        
         // Create button to trigger ball spin
         Button spinbutton = new Button("Spin");
         spinbutton.setPrefSize(value * 3, value * 3);
         spinbutton.setLayoutX(value * 9);
         spinbutton.setLayoutY(380);
+        
+        Label winNroLabel = new Label();
+        winNroLabel.setLayoutX(value * 9);
+        winNroLabel.setLayoutY(380 + value * 3 + 50);
+        winNroLabel.setVisible(false);
+        winNroLabel.setFont(Font.font(20));
+        
         // Spin button action calculates new winning number
+        // Shiws new window whit wheel an dball spin animation
         spinbutton.setOnAction((t) -> {
-            Random rand = new Random();
-            randomWinNro = rand.nextInt(38);
-            System.out.println("New winner number: " + randomWinNro);
-            int netWin = calculateWinnings();
-            updateLabel(bankrollLabel, "Bankroll: " , bankroll);
-            updateLabel(netWinLabel, "Net win: " , netWin);
-        });
-        // Adding elements to root group
-        root.getChildren().addAll(creteRouletteTable(), spinbutton, vb);
+            Wheel wheel = new Wheel();
+            // Open new window for showin the roulette wheel
+            StackPane parent = new StackPane();
+            parent.getChildren().add(wheel.getWheel());
+            wheel.setLayoutX(value * 15);
+            Stage stg = new Stage();
+            stg.setScene(new Scene(parent));
+            stg.show();
 
-        // Create chips and add them to group
+            randomWinNro = wheel.spinBall();
+            int totalWin = calculateTotWin();
+            int netWin = calculateNetWin();
+            
+            updateLabel(bankrollLabel, bankrollText , bankroll);
+            updateLabel(netWinLabel, netWinText , netWin);
+            updateLabel(winLabel, winLabelText, totalWin);
+            winNroLabel.setText("Winning: " + randomWinNro + ", " + wheel.getWinnerColour(randomWinNro));
+            winNroLabel.setVisible(true);
+        });
+        
+        // Adding elements to root
+        root.getChildren().addAll(creteRouletteTable(), spinbutton, vb, winNroLabel);
+
+        // Create chips and add them to root and allChips list
         Chip dollarChip = new Chip(value * 10, 100, chipRadius, Color.CADETBLUE, 1);
         root.getChildren().add(dollarChip);
-//        Node dollarRoot = root.getChildren().get(3);
         allChips.add(dollarChip);
-//        System.out.println(dollarRoot.getClass());
 
         Chip fiveChip = new Chip(value * 10, 150, chipRadius, Color.RED, 5);
         root.getChildren().add(fiveChip);
-//        Node fiveroot = root.getChildren().get(4);
         allChips.add(fiveChip);
 
         Chip tenChip = new Chip(value * 10, 200, chipRadius, Color.YELLOW, 10);
         root.getChildren().add(tenChip);
-//        Node tenRoot = root.getChildren().get(5);
         allChips.add(tenChip);
 
         Chip twentyFiveChip = new Chip(value * 10, 250, chipRadius, Color.LIGHTGREEN, 25);
         root.getChildren().add(twentyFiveChip);
-//        Node twentyFiveroot = root.getChildren().get(6);
         allChips.add(twentyFiveChip);
 
         Chip hundredChip = new Chip(value * 10, 300, chipRadius, Color.BLACK, 100);
         root.getChildren().add(hundredChip);
-//        Node hundredRoot = root.getChildren().get(7);
         allChips.add(hundredChip);
-
-        bankroll = askForBankroll();
+        
         // Ask for bankroll and assing that to label
+        bankroll = askForBankroll();
+        // Create and add stuff to labels
         bankrollLabel = new Label();
         netWinLabel = new Label();
-        updateLabel(bankrollLabel, "Bankroll: " , bankroll);
-        updateLabel(netWinLabel, "Net win: " , 0); 
+        winLabel = new Label(); 
+        totalBetLabel = new Label();
+        netWinLabel.setFont(Font.font(20));
+        bankrollLabel.setFont(Font.font(20));
+        winLabel.setFont(Font.font(20));
+        updateLabel(bankrollLabel, bankrollText, bankroll);
+        updateLabel(netWinLabel, netWinText , 0); 
+        updateLabel(winLabel, winLabelText, 0);
+        updateLabel(totalBetLabel, totalBetText, 0);
         vb.getChildren().add(bankrollLabel);
+        vb.setLayoutX(value * 12);
+        vb.getChildren().add(totalBetLabel);
         vb.setLayoutX(value * 13);
-        vb.getChildren().add(netWinLabel);
+        vb.getChildren().add(winLabel);
         vb.setLayoutX(value * 14);
-
-        // Testit kaikille chipeille, että event toimii
-        allChips.forEach(i -> {
-            i.setOnMousePressed((t) -> {
-//                System.out.println(i.getAmount() + " chip pressed");
-            });
-        });
+        vb.getChildren().add(netWinLabel);
+        vb.setLayoutX(value * 15);
 
         // Dragging operations for chips
         allChips.forEach(i -> {
@@ -235,14 +261,9 @@ public class GUI_Projectwork extends Application {
                     betsHandlerer(i.getLayoutX(), i.getLayoutY(), i);
                     // Relocate the original chip to the side
                     i.relocate(i.getX(), i.getY());
-
-                    // koko kasvaa, mutta miten saan ne liikuteltaviski?
-//                    System.out.println(allChips.size());
-//                    printArray(betsList);
                 }
             });
         });
-
         bp.setTop(menuBar);
         bp.setLeft(root);
         // Show stuff
@@ -253,11 +274,26 @@ public class GUI_Projectwork extends Application {
     }
 
     /**
-     * Updates bankrollLabel
+     * Method for undoing action.
+     * 
+     */
+    public void undoAction() {
+        Chip undoChip = undoStack.pop();
+        redoStack.add(undoChip);
+        root.getChildren().remove(undoChip);
+        betsList.remove(undoChip);
+        bankroll += undoChip.getAmount();
+        updateLabel(bankrollLabel, bankrollText , bankroll);
+        totalBet -= undoChip.getAmount();
+        updateLabel(totalBetLabel, totalBetText, totalBet);
+    }
+    /**
+     * Updates label
      */
     public void updateLabel (Label label, String text, int number) {
         label.setText(text + String.valueOf(number));
     }
+    
     /**
      * Asks for bankroll with inputdialog, and checks that input is integer
      * @return players bankroll
@@ -276,15 +312,40 @@ public class GUI_Projectwork extends Application {
                 a.showAndWait();
             }
         }
-        
         return bankroll;
     }
 
     /**
+     * Calculates total of the betted money
+     * @return int of total bet
+     */
+    public int calculateTotalBet() {
+        int totalBetLocal = 0;
+        for (Chip c : betsList) {
+            totalBetLocal += c.getAmount();
+        }
+        return totalBetLocal;
+    }
+    
+    /**
+     * Calculates total winnings for all winning bets 
+     * @return int of total winnings.
+     */
+    public int calculateTotWin() {
+        int totalWin = 0;
+        for (Chip c : betsList) {
+            if (c.isWinner(randomWinNro)) {
+                totalWin += c.getTotalwinnig();
+            }
+        }
+        return totalWin;
+    }
+    
+    /**
      * Calculate winnings and updates bankroll. Also prints net win/loss
      * @return calculated netWin
      */
-    public int calculateWinnings() {
+    public int calculateNetWin() {
         int totalWin = 0;
         int netWin = 0;
         ArrayList<Chip> helpList = new ArrayList<>(betsList);
@@ -292,7 +353,6 @@ public class GUI_Projectwork extends Application {
         for (Chip c : helpList) {
             if (c.isWinner(randomWinNro)) {
                 netWin += c.getTotalwinnig();
-                System.out.println("winner");
                 totalWin += c.getTotalwinnig();
             } else {
                 netWin -= c.getAmount();
@@ -302,10 +362,9 @@ public class GUI_Projectwork extends Application {
         }
         bankroll += totalWin;
         helpList.clear(); // clear the helplist
-//        System.out.println("Total win is: " + totalWin);
-            
         return netWin;
     }
+    
     // Returns element closest to target in arr[]
     public double findClosest(double arr[], double target) {
         int n = arr.length;
@@ -357,6 +416,14 @@ public class GUI_Projectwork extends Application {
         }
     }
 
+    /**
+     * Method for handling bets. First calculates  snapping positions for the bets.
+     * Then creates nwe chip from the moved one and adds it to list.
+     * @param x
+     * @param y
+     * @param c
+     * @return ArrayList of chips.
+     */
     public ArrayList<Chip> betsHandlerer(double x, double y, Chip c) {
         double xsc = value + value / 2; // sscuare center locations X axis
         double xse = xsc + xsc / 2; // Square edge locations X axis
@@ -373,6 +440,10 @@ public class GUI_Projectwork extends Application {
 
         Arrays.sort(ySnapLocs);
 
+        /*
+        * First calculate snapping locations for chips on table. 
+        */
+        
         // Check that is placed on roulette table
         // x (width) axix = between value and 425
         // y (height) axis = between 0 and 700
@@ -413,17 +484,14 @@ public class GUI_Projectwork extends Application {
                 isOutside = true;
                 // 1-12
                 if (yindex > 0 && yindex < 9) {
-//                    System.out.println("1-12");
                     yClosest = ySnapLocs[5];
                 }
                 // 13-24
                 if (yindex >= 9 && yindex < 17) {
-//                    System.out.println("13-24");
                     yClosest = ySnapLocs[13];
                 }
                 // 25-36
                 if (yindex >= 17 && yindex < 24) {
-//                    System.out.println("25-36");
                     yClosest = ySnapLocs[21];
                 }
                 // No bet goes here
@@ -457,61 +525,54 @@ public class GUI_Projectwork extends Application {
             if (yindex == 25 && (xindex > 5 || xindex == 0)) {
                 return null;
             }
-
-//            System.out.println("x: " + xindex+ ", y: " + yindex);
+            
             // Create new chip from the moved chip
             Chip movedChip = new Chip(xClosest, yClosest + 5, chipRadius, c.getPaint(), c.getAmount());
 
-
-//            if (isOutside) {
-//                
-//            }
             int[] l = new int[1];
+            // Chick the numbers chip is on top of.
             if (isOutside) {
                 int[] z = calculateOutsideBet(xindex, yindex);
-//                System.out.println(Arrays.toString(z));
-//                System.arraycopy(z, 0, l, 0, l.length);
                 l = z;
             } else {
                 int[] z = calculateHittedNumbers(xindex, yindex);
                 if (z != null) {
-//                    System.out.println(Arrays.toString(z));
                     System.arraycopy(z, 0, l, 0, l.length);
                     l = z;
                 }
             }
-            
-//            l = isOutside ? calculateOutsideBet(xindex, yindex) : calculateHittedNumbers(xindex, yindex);
-//            System.out.println("print l: " + Arrays.toString(l));
+            // Error checking
             if (l != null) {
                 
                 // Check that bankroll won't go negative
                 if (bankroll - movedChip.getAmount() >= 0) {
                     root.getChildren().add(movedChip);
                     allChips.add(movedChip);
-                   // Set data to the chip
+                   // Set data to the chip and update labels
                     movedChip.setNumbers(l);
                     movedChip.setBetMultiplier();
                     betsList.add(movedChip);
                     undoStack.add(movedChip);
                     bankroll -= movedChip.getAmount(); 
+                    totalBet = calculateTotalBet();
                     updateLabel(bankrollLabel, "Bankroll: " , bankroll);
-                    
-                }else {
+                    updateLabel(totalBetLabel, "Total bet: " , totalBet);
+                // ALert if bankroll is smaller than the chip value
+                } else {
                     Alert a = new Alert(Alert.AlertType.CONFIRMATION, "Not enough money for that");
                     a.showAndWait();
                 }
-                
-                
-//                System.out.println("moved chip numbers: " + Arrays.toString(movedChip.numbers));
-//                printArray(betsList);
-//                System.out.println("undoStack size: " + undoStack.size());
             }
         }
-
         return betsList;
     }
 
+    /**
+     * Calculates outside bets (the green ones except zeroes).
+     * @param xindex
+     * @param yindex
+     * @return list of numbers for that bet
+     */
     public int[] calculateOutsideBet(int xindex, int yindex) {
         int[] numbersToReturn = new int[12]; // size minimum 12
         final int[] balackNumbers = {15, 4, 2, 17, 6, 13, 11, 8, 10, 24, 33, 20, 31, 22, 29, 28, 35, 26};
@@ -521,13 +582,11 @@ public class GUI_Projectwork extends Application {
         final int[] thirdCol = {3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36};
         System.out.println("x: " + xindex + ", y: " + yindex);
 
-        // Bets are 2 to bets
+        // Bets are 2 to 1 bets
         if (xindex == 6) {
-
             // Use for loops to put the correct numbsers to array
             // First dozen
             if (yindex > 0 && yindex < 9) {
-
                 for (int i = 0; i < 12; i++) {
                     numbersToReturn[i] = i + 1;
                 }
@@ -544,7 +603,9 @@ public class GUI_Projectwork extends Application {
                     numbersToReturn[i] = i + 25;
                 }
             }
-        } else if (xindex > 0 && xindex <= 5 && yindex == 25) {
+        } 
+        // Column bets
+        else if (xindex > 0 && xindex <= 5 && yindex == 25) {
             if (xindex % 2 != 0) {
                 switch (xindex) {
                     case 1:
@@ -617,8 +678,6 @@ public class GUI_Projectwork extends Application {
      */
     public int[] calculateHittedNumbers(int xIndex, int yIndex) {
         int[] numbersToReturn = new int[1];
-//        System.out.println("x " + xIndex + " y " + yIndex);
-
         int column = (int) Math.ceil(xIndex / 2);
         int row = (int) Math.ceil(yIndex / 2 - 1);
 
@@ -636,20 +695,16 @@ public class GUI_Projectwork extends Application {
         // calculate zero area. 37 ued for 00
         if (yIndex == 0 || yIndex == 1) {
             return calculateZeroNumbers(xIndex, yIndex);
-        } /*
-         Calculating center number that chip is on top of. 
-         */ 
+        }
+        // Calculating center number that chip is on top of. 
         else if (xIndex < 6 && xIndex % 2 != 0 && yIndex > 0 && yIndex % 2 == 0) {
-//                System.out.println("straight");
             // Add the number to array
             numbersToReturn[0] = numbers[row][column];
-//            System.out.println(numbersToReturn[0]);
             return numbersToReturn;
-        } /*
-         Calculate the shared numbers chip is on top of.
-         */ // corner up down
+        } 
+        // Calculate the shared numbers chip is on top of.
+        // corner up down
         else if (xIndex % 2 != 0) {
-//                System.out.println("split updown");
             int[] temp = new int[2];
             System.arraycopy(numbersToReturn, 0, temp, 0, numbersToReturn.length);
             numbersToReturn = temp;
@@ -661,8 +716,6 @@ public class GUI_Projectwork extends Application {
             return numbersToReturn;
         } // Street (3 adjacent numbers)
         else if (xIndex == 0 && yIndex > 0 && yIndex % 2 == 0) {
-//                System.out.println("street");
-
             // Increase the numbersToReturn array size to match numbers in bet
             int[] temp = new int[3];
             System.arraycopy(numbersToReturn, 0, temp, 0, numbersToReturn.length);
@@ -676,8 +729,6 @@ public class GUI_Projectwork extends Application {
             return numbersToReturn;
         } // Double street (6 adjacent numbers)
         else if (xIndex == 0 && yIndex > 0 && yIndex % 2 != 0 && yIndex <= 23) {
-//                System.out.println("double street");
-
             // Increase the numbersToReturn array size to match numbers in bet
             int[] temp = new int[6];
             System.arraycopy(numbersToReturn, 0, temp, 0, numbersToReturn.length);
@@ -690,14 +741,12 @@ public class GUI_Projectwork extends Application {
             return numbersToReturn;
         } // Limitations for split and orner bet locations
         else if (xIndex < 6 && xIndex % 2 == 0 && yIndex > 0 && xIndex > 0) {
-
             // Calculate adjacent numbers using floor and celi functions
             int leftNro = (int) Math.floor(xIndex * 1.0 / 3);
             int rightNro = (int) Math.ceil(xIndex * 1.0 / 3);
 
             // Split x axix (sideways)
             if (yIndex % 2 == 0) {
-//                    System.out.println("split");
                 // Increase the numbersToReturn array size to 2
                 int[] temp = new int[2];
                 System.arraycopy(numbersToReturn, 0, temp, 0, numbersToReturn.length);
@@ -708,10 +757,8 @@ public class GUI_Projectwork extends Application {
                 numbersToReturn[1] = numbers[row][rightNro];
 
                 return numbersToReturn;
-
             } // Corner
             else if (yIndex > 1 && yIndex <= 23) {
-//                    System.out.println("corner");
                 // Calculate corner numbers
                 int topLeft = numbers[row][leftNro];
                 int topRight = numbers[row][rightNro];
@@ -738,10 +785,9 @@ public class GUI_Projectwork extends Application {
 
     /**
      * Method for calculating numbers under chip if it is around zeroes area
-     *
      * @param xIndex
      * @param yIndex
-     * @return
+     * @return numbers in list or null fo rfuture testing.
      */
     public int[] calculateZeroNumbers(int xIndex, int yIndex) {
         int[] numbersToReturn = new int[1];
@@ -854,7 +900,6 @@ public class GUI_Projectwork extends Application {
 
     /**
      * Print method for ArrayList. For testing.
-     *
      * @param list ArrayList to be printed.
      */
     public void printArray(ArrayList<Chip> list) {
@@ -866,16 +911,13 @@ public class GUI_Projectwork extends Application {
 
     /**
      * Method for creating roulette table layout.
-     *
+     * Code needs some cleaning.
      * @return Group with all the elements of the roulette table
      */
     public Group creteRouletteTable() {
         Group g = new Group();
         Rectangle rtgl;
 
-        // Jos jokasen ruudulle tekisi oman metodin käyttäen stackpanea
-        // ja lisäisi ne sitten grouppiin, teksti olisi keskellä.
-        // Ruutuolio voi olla myös tarpeellinen kun laskee chipin numeroita.
         int squareLoc = value, offset = value, x = value, y = value;
         String text;
         // Loop for creating numbers 1 to 36
@@ -1004,7 +1046,7 @@ public class GUI_Projectwork extends Application {
                 text = "18TO36";
             }
 
-            //q                         loc                loc          size        size
+            //                         loc                loc          size        size
             rtgl = new Rectangle(offset + value * 1.5, outerOffset, value * 1.5, value * 2);
             rtgl.setFill(Color.GREEN);
             rtgl.setStroke(Color.WHITE);
@@ -1025,35 +1067,5 @@ public class GUI_Projectwork extends Application {
         }
         return g;
     }
-}
 
-// Tests and notes
-//        GridPane mainGrid = new GridPane();
-//        mainGrid.setPadding(new Insets(10, 10, 10, 10));
-//        
-//        // Creating a grid for the roulette layout
-//        GridPane rouletteGrid = new GridPane();
-// (horisonal, vertical) 
-//        rouletteGrid.add(new Button("1"), 0, 0);
-//        rouletteGrid.add(new Button("2"), 1, 0);
-//        rouletteGrid.add(new Button("3"), 2, 0);
-//        rouletteGrid.add(new Button("Fi\nr\n  st\n \n dos"), 3, 1);
-//        rouletteGrid.add(new Button("4"), 0, 1);
-//        rouletteGrid.add(new Button("5"), 1, 1);
-//        rouletteGrid.add(new Button("6"), 2, 1);
-//        rouletteGrid.add(new Button("7"), 0, 2);
-//        rouletteGrid.add(new Button("8"), 1, 2);
-//        rouletteGrid.add(new Button("9"), 2, 2);
-//        rouletteGrid.add(new Button("10"), 0, 3);
-//        rouletteGrid.add(new Button("11"), 1, 3);
-//        rouletteGrid.add(new Button("12"), 2, 3);
-//        
-//        // Creating the statistics layouts
-//        VBox testiYlempi = new VBox(new Text("TEsti ylempi"));
-//        VBox testiAlempo = new VBox(new Text("TEsti alempi"));
-//        
-//        // Adding components to mainGrid
-//        mainGrid.setHgap(10);
-//        mainGrid.add(rouletteGrid, 0, 0);
-//        mainGrid.add(testiYlempi, 1, 0);
-//        mainGrid.add(testiAlempo, 1, 1);
+}

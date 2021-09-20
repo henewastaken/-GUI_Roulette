@@ -1,19 +1,16 @@
 package gui_projectwork;
 
-import java.util.Arrays;
 import javafx.scene.paint.Color;
-import javafx.scene.Group;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
 /**
- *
- * @author henea
+ * Class for chip object. 
+ * Chip has value and numbers it's placed on at table.
+ * @author Henry Andersson, henry.andersson<at>tuni.fi
  */
 public class Chip extends StackPane {
 
@@ -25,6 +22,14 @@ public class Chip extends StackPane {
     int betMultiplier;
     boolean isWinner = false;
 
+    /**
+     * Constructor
+     * @param x x location
+     * @param y y location
+     * @param r radius
+     * @param paint color
+     * @param amount amount
+     */
     public Chip(double x, double y, double r, Paint paint, int amount) {
         this.amount = amount;
         this.x = x;
@@ -33,9 +38,6 @@ public class Chip extends StackPane {
 
         Circle chip = new Circle();
         chip.setRadius(r);
-
-//        chip.setCenterX(x);
-//        chip.setCenterY(y);
         chip.setFill(paint);
 
         Text text = new Text(String.valueOf(amount));
@@ -48,9 +50,6 @@ public class Chip extends StackPane {
             text.setFill(Color.BLACK);
             chip.setStroke(Color.WHITE);
         }
-//        text.setX(chip.getCenterX()-7);
-//        text.setY(chip.getCenterY()+6);
-
         setLayoutX(x);
         setLayoutY(y);
 
@@ -75,7 +74,6 @@ public class Chip extends StackPane {
 
     // Kun chippi asetetaan pöydälle lisätään tähän numerot jotka asetetaan betsLsitiin mainissa
     public void setNumbers(int[] n) {
-//        System.out.println("in chip numbers: " + Arrays.toString(n));
         System.arraycopy(n, 0, this.numbers, 0, this.numbers.length);
         this.numbers = n;
         setBetMultiplier();
@@ -85,6 +83,11 @@ public class Chip extends StackPane {
         return this.numbers;
     }
 
+    /**
+     * Calculates if chip is ontop of winning number.
+     * @param winningNro
+     * @return boolean
+     */
     public boolean isWinner(int winningNro) {
         if (numbers.length > 0) {
             for (int i : numbers) {
@@ -103,6 +106,9 @@ public class Chip extends StackPane {
         return betMultiplier;
     }
 
+    /**
+     * Sets bet multiplier based on amount of numbers the chip is on.
+     */
     public void setBetMultiplier() {
         int len = this.numbers.length;
         if (len > 0) {
